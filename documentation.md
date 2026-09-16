@@ -1,4 +1,5 @@
 AI Customer Support Agent for Facebook Messenger (Cake Business)
+
 Problem
 
 Customers reaching out through online stores or social media marketplaces often have questions, place inquiries, or follow up on previous concerns. Inevitably, some of these messages go unanswered — during busy hours or after the business closes for the day. Left unattended, this can mean lost sales, lost trust, and unresolved issues piling up.
@@ -12,12 +13,19 @@ Architecture
 
 Tools Used
 n8n — self-hosted via Docker
+
 Google Sheets — cake menu lookup
+
 PostgreSQL — stores customer, order, and conversation data
+
 Telegram — human handoff approval
+
 Groq — primary conversation model
+
 Gemini — fallback conversation model
+
 Facebook Graph API — webhook integration for Messenger
+
 Problems Solved
 
 Preventing the AI agent from interfering during human handoff A Postgres node placed right after the webhook stores the conversation ID and checks the status column on the conversations table. If the status is bot_active, the message is routed through the AI agent as usual. If it's human_active, a second Postgres lookup combined with an IF node routes the message around the AI agent entirely — so a live agent can take over without the bot jumping back in.

@@ -1,0 +1,705 @@
+{
+  "name": "AI Messenger Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "facebook-message",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -784,
+        -144
+      ],
+      "id": "bcfb8854-9006-4912-bdc1-ed872f540647",
+      "name": "Webhook",
+      "webhookId": "4f66fc6b-424e-4d49-9e44-8a4066f6a097"
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-27b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        272
+      ],
+      "id": "9e6ca0ad-379e-4db2-b150-7bbb2129ab3e",
+      "name": "Groq Chat Model",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "groqApi": {
+          "id": "B42bAHVISobaas9c",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/me/messages?access_token="YOUR_FACEBOOK_TOKEN",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').first().json.body.entry[0].messaging[0].sender.id }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": {{ JSON.stringify($json.output) }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        464,
+        -128
+      ],
+      "id": "d1872753-1e59-4c9b-b8b4-f666fa5a5b67",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "UIigl0YOhoTjgsFu",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "This is where you willl insert the name, phone number and address of the customer.",
+        "operation": "executeQuery",
+        "query": "INSERT INTO customer_info (name, phone_number, p_address)\nVALUES ('{{ $fromAI('name', \"the name of the customer\") }}', '{{ $fromAI('phone_num', \"the phone number of the customer\") }}', '{{ $fromAI('p_address', \"the home address of the customer for deliveries only\") }}')\nRETURNING id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        64,
+        272
+      ],
+      "id": "fab22e23-7656-49c4-b194-b68dbc6cf55e",
+      "name": "customer_info",
+      "credentials": {
+        "postgres": {
+          "id": "QlYEoDGFKxvnsW9P",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "order_info",
+          "mode": "list",
+          "cachedResultName": "order_info"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "order_name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('order_name', `The name of the cake the customer ordered`, 'string') }}",
+            "checkout_mode": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('checkout_mode', `Only use Delivery or Pickup`, 'string') }}",
+            "order_price": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('order_price', `The amount/price of the order`, 'number') }}",
+            "customer_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('customer_id', `The \"id\" that was returned from the query from customer_info postgres node`, 'number') }}",
+            "scheduled_date": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('scheduled_date', `=If pickup, write the date that the customer will pickup the order. If delivery, write the delivery date of the order. If customer mentioned \"Today\" use the date today specifically.`, 'string') }}",
+            "scheduled_time": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('scheduled_time', `The time that the customer will pickup the order or deliver the order. If customer provided 10 AM, convert the time into a 24 hour format.`, 'string') }}",
+            "order_created": "={{ $now }}",
+            "quantity": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('quantity', `This is where you put the number of cakes a customer ordered`, 'number') }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "customer_id",
+              "displayName": "customer_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "order_name",
+              "displayName": "order_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "order_price",
+              "displayName": "order_price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "checkout_mode",
+              "displayName": "checkout_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "scheduled_date",
+              "displayName": "scheduled_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "scheduled_time",
+              "displayName": "scheduled_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "time",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "order_created",
+              "displayName": "order_created",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "quantity",
+              "displayName": "quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        176,
+        272
+      ],
+      "id": "2266f718-18c9-48a1-abf0-8d5bd744c5bb",
+      "name": "order_info",
+      "credentials": {
+        "postgres": {
+          "id": "QlYEoDGFKxvnsW9P",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query.hub_challenge }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -528,
+        -160
+      ],
+      "id": "34444b6c-6d28-430c-9d14-f4e41ae9461a",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -80,
+        272
+      ],
+      "id": "fed75006-fe5b-463d-8e57-954d26784f6d",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "QlYEoDGFKxvnsW9P",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "18B4tyiUwnlNVZSxdmEXZS0IQYJ7BCA19wXcfo0ngd6A",
+          "mode": "list",
+          "cachedResultName": "Cake Menus",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18B4tyiUwnlNVZSxdmEXZS0IQYJ7BCA19wXcfo0ngd6A/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 540798065,
+          "mode": "list",
+          "cachedResultName": "Product_Info",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18B4tyiUwnlNVZSxdmEXZS0IQYJ7BCA19wXcfo0ngd6A/edit#gid=540798065"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        288,
+        272
+      ],
+      "id": "b63e9611-d405-4242-8cfd-0c6b33948d46",
+      "name": "Cake Menu",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "deRwKT7kxLM0SIB9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }}",
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "=You are Bun, my support assistant. You help with taking orders, answering inquiries, and managing feedback. You assist customers with their concerns and their interest in our products. I currently run a shop selling pastries. We are only selling 8\" cakes at this time.\n\n# CRITICAL RULES:\n- Before handing off a customer, make sure to collect all the required details first.\n- Use the Telegram tool only when a customer explicitly asks for a live agent.\n- Do not use Google Sheets unnecessarily Use it only when checking cake availability, prices, and ingredients.\n- Do not ask for the address more than once. Only ask for the address if customer explicitly mentioned that they wanted the order to be delivered.\n- You must ask only ONE question per response, then STOP and wait for the customer's actual reply.\n- NEVER simulate, assume, or generate the customer's response on their behalf.\n- NEVER generate multiple turns of conversation in a single output.\n- Do not create a full order summary until the customer has answered each question individually, one at a time, in separate real messages.\n- Do not ask repetitive questions. If customer mentioned that \"I already provided that\" or signals that they already have provided an answer to your question, lookup the previous chat history using the current session id to review previous conversations.\n- If the customer's question or response is a bit ambiguous, confirm the customer's interest if they wanted to order a cake or inquire about our shop. \n\n# HANDOFF\nIf a customer explicitly asks for a live agent, collect the following information first:\n- Name\n- Phone Number\n- Concern\n- Tag\n- For the tag, write only \"live agent request\". After collecting this information, let the customer know a live agent will reach out to them.\n- Use the telegram tool to send a notification if a customer wanted to speak to an agent. \n- Call the postgres \"conversation\" node to update the \"status\" column to \"human_active\". Only call the tool once the telegram message has been \"approved\".\n\n# TOOLS\n## Google Sheets\n  - Only use this when the customer asks for the availability of the cake. Do not use this more than once or for unecessary lookups during the conversation.\n## Postgres(customer_info/order_info table)\n  ### customer_info\n      - After the customer confirmed the order details and the transaction , run this postgres node to insert customer details.\n      - Make sure to get the \"id\" that was returned from the query.\n  ### order_info\n      - After the customer confirmed the order details and the transaction, log each order details based on columns provided and from the information gathered from the previous conversation.\n      - As for the \"id\" from the customer_info query, use the \"id\" and put it on the \"customer_id\" column. \n  ### conversations\n      - Use this tool whenever a customer the telegram \"approval\" has been triggered. Update the row to \"human_active\" once the telegram message has been \"approved\" for customer handoff inquiries.\n## Telegram\n- Use this tool only when the customer requests to speak with a live agent.\n\n# ORDER PROCESSING\n- The first time you receive a message from a customer, greet them warmly, like talking to a real person. Thank them for reaching out.\n  Example: \"Hi, this is Bun, your support assistant. Thank you for reaching out to us. Please be informed that we only process deliveries around Cagayan de Oro. Deliveries outside the City is currently unavailable. Would you like to proceed?\"\n\n## If \"YES\"\n-  Ask the customer: \"How can I assist you today?\"\n- If the customer asks about cake availability, price, cake flavors, or allergens:\n  - Check the availability of the cake they're asking about via Google Sheets. Do not invent an answer or respond without checking the Google Sheets where the cake menu is listed.\n  - If a cake they we're looking for is not available, apologize that the requested flavor isn't available. Offer 1-2 similar flavors as alternatives, based on closest match in taste/profile. If nothing closely matches, offer just one alternative.\n  - After checking the Cake Menu via Google Sheets, confirm if the customer would like to proceed with their order.\n\n- If the customer asks about Shop availability:\n  - Inform the customer that the shop is available from Weekdays 9AM - 6PM. We are also open but only on Saturday from 9AM - 1PM only.\n\n## If \"NO\"\n- Thank the customer for their time, then end the conversation politely.\n\n# CUSTOMER PROCEEDS TO ORDER\nOnce customer confirms their order, gather the following details. Ask each question one-at-a-time:\n  - Name\n  - The name of the cake they were looking for(Get the name of the cake they were asking on their first conversation with you)\n  - Quantity\n  - Confirm checkout mode. Ask if they want to pickup the order via Store-pickup or Deliver it to their address.\n    Sample response: \"Would you like to pickup your order in store or proceed with delivery to your address?\"\n\n# CUSTOMER DOES NOT PROCEED TO ORDER\nIf customer does not want to proceed, ask if they have anything else you can help them with.\n  - If NONE, thank the customer for their time and end the conversation politely.\n\n# CHECKOUT MODE\n## MODE - PICKUP \n- If the customer explicitly mentions or chooses to pickup the order in-store, confirm the pickup time:\n  - \"Since you mentioned pick-up, what time will you be picking up the order?\"\n  - Make sure to get the specific time they will pickup the order.\n  - If customer mentioned they will pickup the order  \"today\". Get the date today and use it to log on the scheduled_date column.\n\n## MODE - DELIVERY\n- If the customer wants the order delivered, confirm the following details: \n  - Address\n  - Delivery date\n  - Delivery time\n\n# ORDER CONFIRMATION\n- Before logging anything to order_info, you must have ALL of the following confirmed by the customer:\n  - Name\n  - Phone number\n  - Cake flavor\n  - Quantity\n  - Checkout mode (pickup or delivery)\n  - Scheduled date and time (or pickup time)\n- Once all details above are collected, repeat them back to the customer in a summary and ask: \"Does everything look correct?\"\n- Only call the order_info tool AFTER the customer explicitly confirms the summary is correct (e.g., says \"yes\" or \"that's correct\").\n- Do NOT call order_info while any required detail is still missing or unconfirmed.",
+          "enableStreaming": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -32,
+        -32
+      ],
+      "id": "e5f1e8ed-b190-4ce0-8659-77b3be75d634",
+      "name": "AI Customer Support"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        272
+      ],
+      "id": "547d0304-b1be-4878-b39a-fa105a1d9d70",
+      "name": "Google Gemini Chat Model",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "OFXWQhqTA5JyGJBb",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "YOUR_CHAT_ID",
+        "message": "=The customer wanted to speak to a live agent. \n\nHere are the details requested below: \n\nCustomer Name: {{ $fromAI('name', 'the name of the customer') }}\nCustomer Phone Number: {{ $fromAI('phone_number', 'the phone number of the customer') }}\nCustomer Concern: {{ $fromAI('concern', 'the concern of the customer') }}\n\nWould you like me to transfer right away?",
+        "approvalOptions": {
+          "values": {}
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.telegramTool",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        272
+      ],
+      "id": "759828dc-d4ce-4804-8507-a8d00dc2d8ab",
+      "name": "Send transfer approval",
+      "webhookId": "2ecc1568-4641-4177-91f0-190131db1683",
+      "credentials": {
+        "telegramApi": {
+          "id": "nCoJnAfO1Zuz6w33",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO conversations (conversation_id, status)\nVALUES ({{ $json.body.entry[0].messaging[0].sender.id }}, 'bot_active')\nON CONFLICT (conversation_id) DO NOTHING;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -592,
+        32
+      ],
+      "id": "d695bf71-0f2d-4bee-8506-7b5e3a41166e",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "QlYEoDGFKxvnsW9P",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM conversations;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -432,
+        -32
+      ],
+      "id": "2a5b283c-d232-4dc1-8c07-1cb30565056a",
+      "name": "Execute a SQL query1",
+      "credentials": {
+        "postgres": {
+          "id": "QlYEoDGFKxvnsW9P",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1da90931-8768-4fbb-97cb-6f50c8d15266",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "bot_active",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -256,
+        64
+      ],
+      "id": "b1994965-c892-4721-bfa5-4356a31bb793",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "conversations",
+          "mode": "list",
+          "cachedResultName": "conversations"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conversation_id": "={{ $('If').item.json.conversation_id }}",
+            "status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('status', `Set to \"human_active\" once the telegram message has been \"approved\" or set to true.`, 'string') }}"
+          },
+          "matchingColumns": [
+            "conversation_id"
+          ],
+          "schema": [
+            {
+              "id": "conversation_id",
+              "displayName": "conversation_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        528,
+        272
+      ],
+      "id": "63a40c67-7395-4b62-b1da-3d7df0d0003a",
+      "name": "conversations",
+      "credentials": {
+        "postgres": {
+          "id": "QlYEoDGFKxvnsW9P",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Customer Support",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "customer_info": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Customer Support",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "order_info": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Customer Support",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Customer Support",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cake Menu": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Customer Support",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Customer Support": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Customer Support",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Send transfer approval": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Customer Support",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Customer Support",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "conversations": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Customer Support",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "8ef6495c-cd34-460b-87f1-ac61eb5781ef",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "aa1c2d96509f51fe24482bec45395215d0b92b834a9e494b7a5fc06047c0a951"
+  },
+  "id": "cc0eLf7jxVuCGPE41kq3Z",
+  "tags": [
+    {
+      "updatedAt": "2026-09-14T12:06:30.724Z",
+      "createdAt": "2026-09-14T12:06:30.724Z",
+      "id": "qtnsgljBHYzQLnoZ",
+      "name": "Main Conversation"
+    }
+  ]
+}
